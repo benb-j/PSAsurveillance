@@ -1,0 +1,151 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Prostate Cancer Assessment</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background-color: #f4f4f4;
+    }
+    .container {
+      background: white;
+      padding: 20px;
+      border-radius: 8px;
+      max-width: 600px;
+      margin: auto;
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    label {
+      display: block;
+      margin-top: 15px;
+    }
+    input, select {
+      width: 100%;
+      padding: 8px;
+      margin-top: 5px;
+      box-sizing: border-box;
+    }
+    .inline {
+      display: flex;
+      gap: 10px;
+    }
+    .inline > div {
+      flex: 1;
+    }
+    button {
+      margin-top: 20px;
+      padding: 10px;
+      width: 100%;
+      background-color: #007BFF;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #result {
+      margin-top: 20px;
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Prostate Cancer Assessment</h2>
+    <form id="prostateForm">
+      <label for="psa">PSA (0–100):</label>
+      <input type="number" id="psa" name="psa" step="0.01" min="0" max="100" required>
+
+      <div class="inline">
+        <div>
+          <label for="grade">Grade:</label>
+          <select id="grade" name="grade" required>
+            <option value="">Select Grade</option>
+            <option value="G3+3">G3+3</option>
+            <option value="G3+4">G3+4</option>
+            <option value="G4+3">G4+3</option>
+            <option value="G4+4">G4+4</option>
+            <option value="G4+5 and above">G4+5 and above</option>
+          </select>
+        </div>
+        <div>
+          <label for="gradeGroup">Grade Group:</label>
+          <input type="text" id="gradeGroup" name="gradeGroup" readonly>
+        </div>
+      </div>
+
+      <label for="stage">Stage on MRI:</label>
+      <select id="stage" name="stage" required>
+        <option value="">Select Stage</option>
+        <option value="T1">T1</option>
+        <option value="T2">T2</option>
+        <option value="T3">T3</option>
+        <option value="T4">T4</option>
+      </select>
+
+      <label for="likert">Likert Score (1–5):</label>
+      <input type="number" id="likert" name="likert" min="1" max="5" required>
+
+      <label for="volume">Prostate Volume (cc):</label>
+      <input type="number" id="volume" name="volume" min="0" max="1000" required>
+
+      <button type="submit">Submit</button>
+    </form>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const gradeToGroup = {
+      "G3+3": 1,
+      "G3+4": 2,
+      "G4+3": 3,
+      "G4+4": 4,
+      "G4+5 and above": 5
+    };
+
+    document.getElementById('grade').addEventListener('change', function() {
+      const grade = this.value;
+      document.getElementById('gradeGroup').value = gradeToGroup[grade] || '';
+    });
+
+    document.getElementById('prostateForm').addEventListener('submit', function(e) {
+      e.preventDefault();
+      const psa = parseFloat(document.getElementById('psa').value);
+      const gradeGroup = parseInt(document.getElementById('gradeGroup').value);
+      const stage = document.getElementById('stage').value;
+      const volume = parseFloat(document.getElementById('volume').value);
+
+      let cpg = "Unknown";
+
+      if (gradeGroup === 1 && psa < 10 && (stage === "T1" || stage === "T2")) {
+        cpg = "CPG 1";
+      } else if (gradeGroup === 2 && psa >= 10 && psa <= 20 && (stage === "T1" || stage === "T2")) {
+        cpg = "CPG 2";
+      } else if ((gradeGroup === 2 && psa >= 10 && psa <= 20 && (stage === "T1" || stage === "T2")) ||
+                 (gradeGroup === 3 && (stage === "T1" || stage === "T2"))) {
+        cpg = "CPG 3";
+      } else if (gradeGroup === 4 || psa > 20 || stage === "T3") {
+        cpg = "CPG 4";
+      } else if ((gradeGroup === 4 && psa > 20) || (gradeGroup === 4 && stage === "T3") ||
+                 (psa > 20 && stage === "T3") || gradeGroup === 5 || stage === "T4") {
+        cpg = "CPG 5";
+      }
+
+      let psaDensity = volume > 0 ? psa / volume : 0;
+      let thresholdDensity = psaDensity < 0.15 ? 0.15 : 0.2;
+      let psaThreshold = thresholdDensity * volume;
+
+      document.getElementById('result').innerHTML = `
+        Cambridge Prognostic Group: ${cpg}<br>
+        PSA Density: ${psaDensity.toFixed(4)} ng/ml/ml<br>
+        PSA Threshold: ${psaThreshold.toFixed(2)} ng/ml
+      `;
+    });
+  </script>
+</body>
+</html>
