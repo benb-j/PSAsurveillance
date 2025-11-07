@@ -1,9 +1,8 @@
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Prostate Cancer Assessment</title>
+  <title>York Prostate Cancer Assessment</title>
   <style>
     body {
       font-family: Arial, sans-serif;
@@ -52,16 +51,26 @@
       margin-top: 20px;
       font-weight: bold;
     }
+    .tg  {border-collapse:collapse;border-spacing:0;}
+    .tg td{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+       overflow:hidden;padding:10px 5px;word-break:normal;}
+    .tg th{border-color:black;border-style:solid;border-width:1px;font-family:Arial, sans-serif;font-size:14px;
+       font-weight:normal;overflow:hidden;padding:10px 5px;word-break:normal;}
+    .tg .tg-cly1{text-align:left;vertical-align:middle}
+    .tg .tg-yla0{font-weight:bold;text-align:left;vertical-align:middle}
   </style>
 </head>
+
 <body>
   <div class="container">
-    <h2>Prostate Cancer Assessment</h2>
+    <h2>York Prostate Cancer Assessment Tool</h2>
     <form id="prostateForm">
-      <label for="psa">PSA:</label>
-      <input type="number" id="psa" name="psa" step="0.01" min="0" max="10000" required>
 
       <div class="inline">
+        <div>
+          <label for="psa">PSA:</label>
+          <input type="number" id="psa" name="psa" step="0.01" min="0" max="10000" required>
+        </div>
         <div>
           <label for="grade">Grade:</label>
           <select id="grade" name="grade" required>
@@ -73,13 +82,17 @@
             <option value="G4+5 and above">G4+5 and above</option>
           </select>
         </div>
-        <div>
-          <label for="gradeGroup">Grade Group:</label>
-          <input type="text" id="gradeGroup" name="gradeGroup" readonly>
-        </div>
       </div>
 
       <div class="inline">
+        <div>      
+          <label for="volume">Prostate Volume:</label>
+          <input type="number" id="volume" name="volume" min="0" max="1000" required>
+        </div>
+        <div>
+          <label for="likert">Likert Score:</label>
+          <input type="number" id="likert" name="likert" min="1" max="5" required>
+        </div>
         <div>      
           <label for="stage">Stage on MRI:</label>
           <select id="stage" name="stage" required>
@@ -90,26 +103,24 @@
             <option value="T4">4</option>
           </select>
         </div>
-        <div>
-          <label for="likert">Likert Score (1–5):</label>
-          <input type="number" id="likert" name="likert" min="1" max="5" required>
-        </div>
       </div>
 
       <div class="inline">
-        <div>      
-          <label for="volume">Prostate Volume (cc):</label>
-          <input type="number" id="volume" name="volume" min="0" max="1000" required>
-        </div>
         <div>
           <label for="psad">PSA density:</label>
           <input type="number" id="psad" name="psad" readonly>
+        </div>
+        <div>
+          <label for="gradeGroup">Grade Group:</label>
+          <input type="text" id="gradeGroup" name="gradeGroup" readonly>
         </div>
       </div>
 
       <button type="submit">Submit</button>
     </form>
     <div id="result"></div>
+    <div id="notsuit"></div>
+    <div id="toorisky"></div>
   </div>
 
   <script>
@@ -148,36 +159,149 @@
       const stage = parseInt(document.getElementById('stage').value);
       const volume = parseFloat(document.getElementById('volume').value);
       const psad = parseFloat(document.getElementById('psad').value);
+      const likert = parseInt(document.getElementById('likert').value);
 
-      let cpg = "Unknown";
+      let cpg = 0;
       let cpg4count = 0;
       if (gradeGroup > 3) cpg4count++;
       if (psa >= 20) cpg4count++;
       if (stage >= 3) cpg4count++;
 
       if (cpg4count >= 2 || gradeGroup === 5 || stage === 4) {
-        cpg = "CPG 5";
+        cpg = 5;
       } else if (cpg4count >= 1) {
-        cpg = "CPG 4";
+        cpg = 4;
       } else if ((gradeGroup === 2 && psa >= 10) ||
                  gradeGroup === 3) {
-        cpg = "CPG 3";
+        cpg = 3;
       } else if (gradeGroup === 2 || psa >= 10) {
-        cpg = "CPG 2";
+        cpg = 2;
       } else
-        cpg = "CPG 1";
+        cpg = 1;
       
 
       let psaDensity = volume > 0 ? psa / volume : 0;
-      let thresholdDensity = psaDensity < 0.10 ? 0.10 : 0.15;
-      let provPSAthresh = thresholdDensity * volume
-      let psaThreshold = provPSAthresh > (psa + 2) ? provPSAthresh : psa + 2;
 
-      document.getElementById('result').innerHTML = `
-        <br>Cambridge Prognostic Group: ${cpg}<br>
-        <br>Suggested PSA Threshold: ${psaThreshold.toFixed(1)} ng/ml
-      `;
-    });
+      let psaThreshold;
+      let threshText;
+      if ((psaDensity < 0.12) && (volume * 0.12) > (psa + 2)) {
+          psaThreshold = volume * 0.12;
+          threshText = "at PSAD 0.12 ng/ml/ml";
+      } else if ((psaDensity < 0.15) && (volume * 0.15) > (psa + 1)) {
+          psaThreshold = volume * 0.15;
+          threshText = "at PSAD 0.15 ng/ml/ml";
+      } else if ((psaDensity < 0.2) && (volume * 0.2) > (psa + 1)) {
+          psaThreshold = volume * 0.2;
+          threshText = "at PSAD 0.2 ng/ml/ml";
+      } else {
+          psaThreshold = psa + 2;
+          threshText = "at PSA baseline + 2 ng/ml";
+      }
+      // if (psaThreshold > (psa + 2)) {
+      //  psaThreshold = psa + 2;
+      //  threshText = "at PSA baseline + 2 ng/ml";
+      //}
+
+      //let thresholdDensity = psaDensity < 0.12 ? 0.12 : 0.15;
+      //let provPSAthresh = thresholdDensity * volume
+      //let psaThreshold = provPSAthresh > (psa + 2) ? provPSAthresh : psa + 2;
+
+      let surveyBand;
+
+      if (cpg >= 3) {
+        surveyBand = 4;
+      } else if (cpg === 2 && psaDensity > 0.15) {
+        surveyBand = 3;
+      } else if (cpg === 2 || psaDensity > 0.15) {
+        surveyBand = 2;
+      } else if (cpg === 1 && psaDensity <= 0.15) {
+        surveyBand = 1;
+      } else {
+        surveyBand = 0;
+      }
+
+      let bandText;
+      let psaFreq;
+      let confBx;
+      let mriFreq;
+      let survBx;
+
+      switch (surveyBand) {
+        case 0:
+          document.getElementById('notsuit').innerHTML = `
+            <h2>No Recommended Surveillance Schedule</h2>`;
+        break;
+        case 4:
+          document.getElementById('toorisky').innerHTML = `
+            Cambridge Prognostic Group: CPG ${cpg}<br>Likert score: ${likert}<br>
+            <h2>No standard surveillance schedule for this risk group</h2>
+          `;
+          break;
+        case 1:
+          bandText = "Low Risk Surveillance";
+          psaFreq = "Yr 1: 4-monthly PSA<br><br>Yr 2: 6-monthly PSA<br><br>Yr 3-10: Annual PSA<br><br> Repeat PSA after 3 months if above threshold";
+          confBx = "At 1-2 years from diagnosis";
+          mriFreq = "Every 5 years";
+          survBx = "No routine surveillance biopsy";
+          break;
+        case 2:
+          bandText = "Intermediate Risk Surveillance";
+          psaFreq = "Yr 1: 4-monthly PSA<br><br>Yr 2-3: 6-monthly PSA<br><br>Yr 4-10: Annual PSA<br><br> Repeat PSA after 3 months if above threshold";
+          confBx = "1 year from diagnosis";
+          mriFreq = "Every 3 years";
+          survBx = "Every 5 years";
+          break;
+        case 3:
+          bandText = "High Risk Surveillance";
+          psaFreq = "Yr 1-2: 4-monthly PSA<br><br>Yr 3-4: 6-monthly PSA<br><br>Yr 5-10: Annual PSA<br><br> Repeat PSA after 3 months if above threshold";
+          confBx = "6 months from diagnosis";
+          mriFreq = "Every year";
+          survBx = "Every 3 years";
+          break;
+      };
+      
+        if (surveyBand === 3) {
+          mriFreq = "Every year";
+        } else if (likert >= 3) {
+          mriFreq = "Every 2 years";
+        } else {
+          mriFreq = "Every 5 years";
+        };
+        
+      
+      if (surveyBand > 0 && surveyBand < 4) {
+          document.getElementById('result').innerHTML = `
+           <h2>Recommended Surveillance Schedule</h2>
+           Cambridge Prognostic Group: CPG ${cpg}<br><br>
+           Suggested PSA Threshold: ${psaThreshold.toFixed(2)} ng/ml <span style="font-weight: normal; font-size:80%;">(${threshText})</span><br><br>
+           Band ${surveyBand}: ${bandText}<br><br>
+
+           <span><table class="tg"><tbody>
+             <tr>
+               <td class="tg-yla0"><br>PSA</td>
+               <td class="tg-cly1"><br>${psaFreq}</td>
+             </tr>
+             <tr>
+               <td class="tg-yla0"><br>Confirmatory MRI + Biopsy</td>
+               <td class="tg-cly1"><br>${confBx}</td>
+             </tr>
+             <tr>
+               <td class="tg-yla0"><br>MRI</td>
+               <td class="tg-cly1"><br>${mriFreq}</td>
+             </tr>
+             <tr>
+               <td class="tg-yla0"><br>Outpatient review</td>
+               <td class="tg-cly1"><br>After each MRI</td>
+             </tr>
+             <tr>
+               <td class="tg-yla0"><br>Surveillance biopsy</td>
+               <td class="tg-cly1"><br>On trigger:<br>PSA over threshold twice, or<br>Progression on MRI<br><br> <br><br>${survBx}<br><br></td>
+             </tr>
+           </tbody></table></span>
+          `;
+      }; 
+         
+    });  // event listener
   </script>
 </body>
 </html>
