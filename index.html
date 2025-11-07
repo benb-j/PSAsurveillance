@@ -95,9 +95,17 @@
           <input type="number" id="likert" name="likert" min="1" max="5" required>
         </div>
       </div>
-      
-      <label for="volume">Prostate Volume (cc):</label>
-      <input type="number" id="volume" name="volume" min="0" max="1000" required>
+
+      <div class="inline">
+        <div>      
+          <label for="volume">Prostate Volume (cc):</label>
+          <input type="number" id="volume" name="volume" min="0" max="1000" required>
+        </div>
+        <div>
+          <label for="psad">PSA density:</label>
+          <input type="number" id="psad" name="psad" readonly>
+        </div>
+      </div>
 
       <button type="submit">Submit</button>
     </form>
@@ -117,6 +125,18 @@
       const grade = this.value;
       document.getElementById('gradeGroup').value = gradeToGroup[grade] || '';
     });
+
+    document.getElementById('volume').addEventListener('change', function() {
+      const volume = this.value;
+      if volume > 0 && document.getElementById('psa').value > 0 {
+      let psaDensity = psa / volume;
+      document.getElementById('psad').value = psaDensity || ''};
+
+    document.getElementById('psa').addEventListener('change', function() {
+      const psa = this.value;
+      if psa > 0 && document.getElementById('volume').value > 0 {
+      let psaDensity = psa / volume;
+      document.getElementById('psad').value = psaDensity || ''};
 
     document.getElementById('prostateForm').addEventListener('submit', function(e) {
       e.preventDefault();
@@ -150,7 +170,7 @@
 
       document.getElementById('result').innerHTML = `
         Cambridge Prognostic Group: ${cpg}<br>
-        PSA Density: ${psaDensity.toFixed(4)} ng/ml/ml<br>
+        PSA Density: ${psaDensity.toFixed(2)} ng/ml/ml<br>
         PSA Threshold: ${psaThreshold.toFixed(1)} ng/ml
       `;
     });
